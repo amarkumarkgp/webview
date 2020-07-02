@@ -2,11 +2,13 @@
 
 {% block body %}
     <div>
+        {% for current_article in current_article %}
         <h1>{{current_article.title}}</h1>
         <small>Written by {{current_article.author}} on {{current_article.created_at}}</small>
         <hr>
 
         <p>{{current_article.body|safe}}</p>
+        {% endfor %}
 
     </div>
 {% endblock %}
