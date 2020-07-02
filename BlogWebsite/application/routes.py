@@ -120,13 +120,17 @@ def add_article():
         body = form.body.data
         author = session.get('username')
 
-        article = Articles(title=title, body=body, author=author)
-        db.session.add(article)
-        db.session.commit()
+        conn = get_connection('db.sqlite3')
+        cur = conn.cursor()
+
+        query = '''INSERT INTO articles(title, body, author) VALUES(?, ?, ?);'''
+        cur.execute(query, (title, body, author))
+        conn.commit()
+        conn.close()
 
         flash('Article added', 'success')
 
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('main.user_dashboard'))
     return render_template('add_article.html', form=form)
 
 
@@ -175,7 +179,7 @@ def delete_article(ids):
     conn.close()
 
     flash("Article deleted", 'success')
-    return redirect(url_for('user_dashboard'))
+    return redirect(url_for('main.user_dashboard'))
 
 
 # route for show article to user
