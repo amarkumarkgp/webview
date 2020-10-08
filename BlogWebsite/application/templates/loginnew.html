@@ -1,0 +1,53 @@
+ {% extends 'base_layout.html' %}
+ {% block body%}
+    {% block section%}
+        <!-- ======= Breadcrumbs ======= -->
+        <section class="breadcrumbs">
+          <div class="container">
+
+            <div class="d-flex justify-content-between align-items-center">
+              <h2>Hello Buddy</h2>
+              <ol>
+                <li class="active"><a href="login.html">Sign In</a></li>
+                <li><a href="Signup.html"></a>Sign Up</li>
+              </ol>
+            </div>
+
+          </div>
+        </section><!-- End Breadcrumbs -->
+
+            <section class="inner-page">
+              <div class="container">
+                <div class="row">
+                  <div class="col-sm-9 col-md-7 col-lg-4 mx-auto">
+                    <div class="card">
+                      <div class="card-header login-header text-center bg-primary">
+                        <h2>Me&Blog</h2>
+                        <span>Please enter your user info</span>
+                      </div>
+                      <div class="card-body login-body">
+                        <form class="form-group">
+                          <div class="form-label-group">
+                            <input type="email" id="inputEmail" class="form-control" placeholder="Email address"
+                                   name="username" value="{{request.form.username}}" required autofocus>
+
+                          </div>
+                          <div class="form-label-group">
+                            <input type="password" id="inputPassword" class="form-control" placeholder="Password"
+                                   name="password" value="{{request.form.password}}" required>
+
+                          </div>
+                          <div class="custom-control custom-checkbox mb-3">
+                            <input type="checkbox" class="custom-control-input" id="customCheck1">
+                            <label class="custom-control-label" for="customCheck1">Remember password</label>
+                          </div>
+                          <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+    {% endblock%}
+ {%endblock%}

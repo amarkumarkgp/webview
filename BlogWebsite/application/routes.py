@@ -1,20 +1,24 @@
 import os
+import io
+import datetime
 from functools import wraps
 from flask import Blueprint
 from passlib.hash import sha256_crypt
-from flask import render_template, flash, redirect, session, url_for, logging, request
+from flask import render_template, flash, redirect, session, url_for, logging, request, send_file, make_response, jsonify
+import matplotlib.pyplot as plt
 
 # developer define imports
 
-from .dbConnection import get_connection
-from .extensions import db
-from .dbmodules import User, Articles
+# from .dbConnection import get_connection
+from .extensions import mysql, login_manager
 from .forms import RegisterForm, ArticlesForm
 
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
-server = Blueprint("main", __name__)
+server = Blueprint("main", __name__,
+                   static_folder=os.path.join(base_dir, "static"),
+                   template_folder=os.path.join(base_dir, 'templates'))
 
 
 # authentication wrapper for user
@@ -29,20 +33,22 @@ def is_accessible(f):
     return wrapped
 
 
+@server.route('/new')
+def newlogin():
+    return render_template('loginnew.html')
+
+
 # user register route
 @server.route('/register', methods=['GET', 'POST'])
 def user_register():
     form = RegisterForm(request.form)
     if request.method == 'POST' and form.validate():
         password = sha256_crypt.hash(form.password.data)
-        # with server.app_context():
-        conn = get_connection('db.sqlite3')
-        cur = conn.cursor()
-        query = '''insert into user(name, username, email, password) values(?,?,?,?);'''
-        cur.execute(query, (form.name.data, form.username.data, form.email.data, password))
-        conn.commit()
-        conn.close()
-        # user = User(name=form.name.data, username=form.username.data, email=form.email.data, password=password)
+        cur = mysql.connection.cursor()
+        query = '''insert into users(name, username, email, password) values(%s,%s,%s,%s);'''
+        cur.execute(query, [form.name.data, form.username.data, form.email.data, password])
+        mysql.connection.commit()
+        cur.close()
 
         flash('You are now registered and can log in.', 'success')
         return render_template('home.html')
@@ -56,23 +62,20 @@ def user_login():
         # getting form field
         username = request.form.get('username', None)
         password = request.form['password']
+        cur = mysql.connection.cursor()
+        query = '''SELECT password, id, role FROM users WHERE username = %s;'''
+        cur.execute(query, [username, ])
+        data = cur.fetchone()
 
-        # data = User.query.filter_by(username=username).first()
-        conn = get_connection("db.sqlite3")
-        cur = conn.cursor()
-        query = '''SELECT password FROM user WHERE username = ?;'''
-        cur.execute(query, (username,))
-        data = cur.fetchall()
-        print(data)
-        if len(data) > 0:
-            if sha256_crypt.verify(password, data[0][0]):
-                # server.logger.info("PASSWORD MATCHED")
+        if data:
+            if sha256_crypt.verify(password, data.get('password')):
                 session['logged_in'] = True
                 session['username'] = username
+                session['userid'] = data.get('id')
+                session['role'] = data.get('role')
                 flash("You are logged in ", 'success')
-                return redirect(url_for('main.user_dashboard'))
+                return render_template('home.html')
 
-            # server.logger.info("PASSWORD DO NOT MATCH")
             error = 'Invalid Login'
             return render_template('login.html', error=error)
         cur.close()
@@ -99,15 +102,16 @@ def about():
 @is_accessible
 def all_articles():
     if session.get("logged_in"):
-        conn = get_connection('db.sqlite3')
-        cur = conn.cursor()
-        query = '''select id, author, title from articles;'''
+        cur = mysql.connection.cursor()
+        query = f"select id, author, title from articles where articleStatus = 'a' "
         cur.execute(query)
         records = cur.fetchall()
-        if len(records) > 0:
+        # print(records)
+        cur.close()
+        if records:
             return render_template('articles.html', articles=records)
     flash('Session time out, please log in again.', 'success')
-    return redirect(url_for('user_login'))
+    return redirect(url_for('main.user_login'))
 
 
 # route for add article
@@ -118,15 +122,15 @@ def add_article():
     if request.method == "POST" and form.validate():
         title = form.title.data
         body = form.body.data
+        articlestatus = form.articlestatus.data
         author = session.get('username')
+        author_id = session.get('userid')
 
-        conn = get_connection('db.sqlite3')
-        cur = conn.cursor()
-
-        query = '''INSERT INTO articles(title, body, author) VALUES(?, ?, ?);'''
-        cur.execute(query, (title, body, author))
-        conn.commit()
-        conn.close()
+        cur = mysql.connection.cursor()
+        query = '''INSERT INTO articles(title, body, author, authorId, articleStatus) VALUES(%s, %s, %s, %s, %s);'''
+        cur.execute(query, [title, body, author, author_id, articlestatus])
+        mysql.connection.commit()
+        cur.close()
 
         flash('Article added', 'success')
 
@@ -138,45 +142,42 @@ def add_article():
 @server.route('/edit_article/<string:ids>/', methods=["GET", 'POST'])
 @is_accessible
 def edit_article(ids):
-    # current_article = Articles.query.filter_by(id=ids).first()
-    conn = get_connection('db.sqlite3')
-    cur = conn.cursor()
-    query = '''select title, body from articles where id = ?'''
-    cur.execute(query, (ids,))
-    records = cur.fetchall()
+    cur = mysql.connection.cursor()
+    query = '''select title, body from articles where id = %s'''
+    cur.execute(query, [ids, ])
+    records = cur.fetchone()
+    cur.close()
 
     form = ArticlesForm(request.form)
-    form.title.data = records[0][0]
-    form.body.data = records[0][1]
-
-    # form.title.data = current_article.title
-    # form.body.data = current_article.body
+    print(records, type(records))
+    form.title.data = records.get('title')
+    form.body.data = records.get('body')
 
     if request.method == "POST" and form.validate():
         title = request.form.get('title')
         body = request.form.get("body")
-        # conn = get_connection('db.sqlite3')
-        query = '''UPDATE articles SET title = ?, body=? WHERE id = ?;'''
-        cur = conn.cursor()
-        cur.execute(query, (title, body, ids))
-        conn.commit()
+        articlestatus = request.form.get('articlestatus')
+        update_time = datetime.datetime.now()
+        cur = mysql.connection.cursor()
+        query = '''UPDATE articles SET title = %s, body=%s, articleStatus= %s, updateAt = %s WHERE id = %s;'''
+        cur.execute(query, [title, body, articlestatus, update_time, ids])
+        mysql.connection.commit()
 
         flash('Article updated', 'success')
-        conn.close()
-        return redirect(url_for('user_dashboard'))
-    conn.close()
+        cur.close()
+        return redirect(url_for('main.user_dashboard'))
+    cur.close()
     return render_template('add_article.html', form=form)
 
 
 @server.route('/delete_article/<string:ids>/')
 @is_accessible
 def delete_article(ids):
-    conn = get_connection('db.sqlite3')
-    cur = conn.cursor()
-    query = '''DELETE FROM articles WHERE id = ?'''
-    cur.execute(query, (ids,))
-    conn.commit()
-    conn.close()
+    cur = mysql.connection.cursor()
+    query = '''DELETE FROM articles WHERE id = %s'''
+    cur.execute(query, [ids, ])
+    mysql.connection.commit()
+    cur.close()
 
     flash("Article deleted", 'success')
     return redirect(url_for('main.user_dashboard'))
@@ -185,33 +186,31 @@ def delete_article(ids):
 # route for show article to user
 @server.route('/article/<string:ids>/')
 def show_article(ids):
-    conn = get_connection("db.sqlite3")
-    cur = conn.cursor()
-    query = '''select * from articles where id = ?'''
-    cur.execute(query, (ids,))
-    records = cur.fetchall()
-
-    if len(records) > 0:
+    cur = mysql.connection.cursor()
+    query = '''select * from articles where id = %s'''
+    print(query)
+    cur.execute(query, [ids, ])
+    records = cur.fetchone()
+    print(records)
+    # print(ids ,records)
+    cur.close()
+    if records:
         return render_template('article.html', current_article=records)
 
     flash("No article found.", 'danger')
     return redirect(url_for('main.all_articles'))
-
-    # current_article = Articles.query.filter_by(id=ids).first()
-    # return render_template('article.html', current_article=current_article)
 
 
 # route for user dashboard
 @server.route('/dashboard')
 @is_accessible
 def user_dashboard():
-    conn = get_connection('db.sqlite3')
-    cur = conn.cursor()
-    query = '''select * from articles where author = ?'''
-    cur.execute(query, (session.get('username'),))
+    cur = mysql.connection.cursor()
+    query = '''select * from articles where author = %s'''
+    cur.execute(query, [session.get('username'), ])
     records = cur.fetchall()
-    # user_articles = Articles.query.all()
-    if len(records)>0:
+    cur.close()
+    if records:
         return render_template('dashboard.html', articles=records)
     msg = 'No article found'
     return render_template('dashboard.html', msg=msg)
@@ -224,4 +223,24 @@ def user_logout():
     session.clear()
     flash('You are logged out now.', 'success')
     return redirect(url_for('main.user_login'))
+
+
+@server.route('/plots/breast_cancer_data/correlation_matrix')
+def plots():
+    x = [x for x in range(10)]
+    y = [k*k for k in x]
+    plt.scatter(x, y)
+    bytes_image = io.BytesIO()
+    plt.savefig(bytes_image, format='png')
+    bytes_image.seek(0)
+    return send_file(bytes_image,
+                     attachment_filename='plot.png',
+                     mimetype='image/png')
+
+
+@server.route('/')
+def landing_view():
+    return make_response(jsonify({"status": "ok", "mode": "developing", "version": 101,
+                                  'uri': request.url}))
+
 

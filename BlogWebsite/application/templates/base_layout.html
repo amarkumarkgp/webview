@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>Butterfly Bootstrap Template - Index</title>
+  <meta content="" name="descriptison">
+  <meta content="" name="keywords">
+
+  <!-- Favicons -->
+  <link href="{{ url_for('static', filename='assets/img/favicon.png') }}" rel="icon">
+  <link href="{{ url_for('static', filename='assets/img/apple-touch-icon.png') }}" rel="apple-touch-icon">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Dosis:300,400,500,,600,700,700i|Lato:300,300i,400,400i,700,700i" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+
+  <link href="{{ url_for('static', filename='assets/vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='assets/vendor/icofont/icofont.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='assets/vendor/boxicons/css/boxicons.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='assets/vendor/venobox/venobox.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='assets/vendor/line-awesome/css/line-awesome.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='assets/vendor/owl.carousel/assets/owl.carousel.min.css') }}" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="{{ url_for('static', filename='assets/css/style.css')}}" rel="stylesheet">
+
+  <!-- =======================================================
+  * Template Name: Butterfly - v2.1.0
+  * Template URL: https://bootstrapmade.com/butterfly-free-bootstrap-theme/
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+</head>
+
+<body>
+  <!-- ======= Header ======= -->
+  <!-- Inheriting the header part -->
+  {% include 'includes/_header.html' %}
+
+<!-- ======= Main ======= -->
+
+  <main id="main">
+    {% block section %}
+
+    {% endblock %}
+  </main>
+
+  <footer id="footer">
+
+  </footer> <!--END FOOTER  HERE -->
+
+
+  <a href="#" class="back-to-top"><i class="icofont-simple-up"></i></a>
+
+  <!-- Vendor JS Files -->
+
+  <script src="{{ url_for('static', filename='assets/vendor/jquery/jquery.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/jquery.easing/jquery.easing.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/php-email-form/validate.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/venobox/venobox.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/waypoints/jquery.waypoints.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/counterup/counterup.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/isotope-layout/isotope.pkgd.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='assets/vendor/owl.carousel/owl.carousel.min.js')}}"></script>
+
+  <!-- Template Main JS File -->
+  <script src="{{ url_for('static', filename='assets/js/main.js')}}"></script>
+
+  <!-- CKEditor -->
+  <script src="//cdn.ckeditor.com/4.14.1/basic/ckeditor.js"></script>
+    <script type="text/javascript">
+        CKEDITOR.replace('article_editor')
+    </script>
+</body>

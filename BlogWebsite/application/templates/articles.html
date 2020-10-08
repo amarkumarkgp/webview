@@ -1,13 +1,22 @@
 {% extends 'layout.html' %}
 
 {% block body%}
+<!--<div class="container">-->
+    <div class="row">
+        <div class="col-md-8">
+            <h1>Artilces</h1>
+            <ul class="list-group">
+                {% for article in articles %}
+                    <li class="list-group-item"><a href="article/{{article.id}}"> {{article.title}} written by {{article.author}} </a></li>
+                {% endfor %}
 
-<h1>Artilces</h1>
-<ul class="list-group">
-    {% for article in articles %}
-        <li class="list-group-item"><a href="article/{{article.id}}"> {{article.title}} written by {{article.author}} </a></li>
-    {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-4">
+            hi there
+        </div>
+    </div>
+<!--</div>-->
 
-</ul>
 
 {% endblock%}

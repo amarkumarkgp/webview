@@ -1,4 +1,4 @@
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators
+from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SelectField
 
 
 # user registration form class
@@ -16,4 +16,6 @@ class RegisterForm(Form):
 class ArticlesForm(Form):
     title = StringField('Title', [validators.length(min=2, max=200)])
     body = TextAreaField('Body', [validators.length(min=20)])
+    articlestatus = SelectField("Select saving mode", choices=[("a", "complete"), ("b", "editmode")],
+                                validate_choice=False)
 
