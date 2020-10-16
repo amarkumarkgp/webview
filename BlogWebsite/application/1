@@ -36,13 +36,12 @@ def is_accessible(f):
 @server.before_request
 def before_request_func():
     if 'dbcur' not in g:
-        g.dbcur = mysql.connection.cursor()
+        dbcur = mysql.connection.cursor()
 
 @server.after_request
-def after_request_func(response):
+def after_request_func():
     if g.dbcur is not None:
         g.dbcur.close()
-    return response
 
 @server.route('/new')
 def newlogin():
