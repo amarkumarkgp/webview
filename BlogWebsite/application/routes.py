@@ -4,8 +4,7 @@ import datetime
 from functools import wraps
 from flask import Blueprint
 from passlib.hash import sha256_crypt
-from flask import render_template, g, flash, redirect, session, url_for, logging, request, send_file, make_response, jsonify
-#import matplotlib.pyplot as plt
+from flask import render_template, g, flash, redirect, session, url_for, request, make_response, jsonify
 
 # developer define imports
 
@@ -35,14 +34,17 @@ def is_accessible(f):
 
 @server.before_request
 def before_request_func():
-    if 'dbcur' not in g:
-        g.dbcur = mysql.connection.cursor()
+    if 'sql_cur' not in g:
+        g.sql_conn = mysql.connection
+        g.sql_cur = mysql.connection.cursor()
+
 
 @server.after_request
 def after_request_func(response):
-    if g.dbcur is not None:
-        g.dbcur.close()
+    if g.sql_cur is not None:
+        g.sql_cur.close()
     return response
+
 
 @server.route('/new')
 def newlogin():
@@ -55,11 +57,9 @@ def user_register():
     form = RegisterForm(request.form)
     if request.method == 'POST' and form.validate():
         password = sha256_crypt.hash(form.password.data)
-        cur = g.dbcur
         query = '''insert into users(name, username, email, password) values(%s,%s,%s,%s);'''
-        cur.execute(query, [form.name.data, form.username.data, form.email.data, password])
-        mysql.connection.commit()
-        #cur.close()
+        g.sql_cur.execute(query, [form.name.data, form.username.data, form.email.data, password])
+        g.sql_connn.commit()
 
         flash('You are now registered and can log in.', 'success')
         return render_template('home.html')
@@ -73,10 +73,9 @@ def user_login():
         # getting form field
         username = request.form.get('username', None)
         password = request.form['password']
-        cur = g.dbcur
         query = '''SELECT password, id, role FROM users WHERE username = %s;'''
-        cur.execute(query, [username, ])
-        data = cur.fetchone()
+        g.sql_cur.execute(query, [username, ])
+        data = g.sql_cur.fetchone()
 
         if data:
             if sha256_crypt.verify(password, data.get('password')):
@@ -89,7 +88,6 @@ def user_login():
 
             error = 'Invalid Login'
             return render_template('login.html', error=error)
-        #cur.close()
 
         # server.logger.info("NO USER")
         error = 'User not found'
@@ -113,12 +111,9 @@ def about():
 @is_accessible
 def all_articles():
     if session.get("logged_in"):
-        cur = g.dbcur
         query = f"select id, author, title from articles where articleStatus = 'a' "
-        cur.execute(query)
-        records = cur.fetchall()
-        # print(records)
-        #cur.close()
+        g.sql_cur.execute(query)
+        records = g.sql_cur.fetchall()
         if records:
             return render_template('articles.html', articles=records)
     flash('Session time out, please log in again.', 'success')
@@ -137,11 +132,9 @@ def add_article():
         author = session.get('username')
         author_id = session.get('userid')
 
-        cur = g.dbcur
         query = '''INSERT INTO articles(title, body, author, authorId, articleStatus) VALUES(%s, %s, %s, %s, %s);'''
-        cur.execute(query, [title, body, author, author_id, articlestatus])
-        mysql.connection.commit()
-        #cur.close()
+        g.sql_cur.execute(query, [title, body, author, author_id, articlestatus])
+        g.sql_conn.commit()
 
         flash('Article added', 'success')
 
@@ -153,11 +146,9 @@ def add_article():
 @server.route('/edit_article/<string:ids>/', methods=["GET", 'POST'])
 @is_accessible
 def edit_article(ids):
-    cur = g.dbcur
     query = '''select title, body from articles where id = %s'''
-    cur.execute(query, [ids, ])
-    records = cur.fetchone()
-    #cur.close()
+    g.sql_cur.execute(query, [ids, ])
+    records = g.sql_cur.fetchone()
 
     form = ArticlesForm(request.form)
     print(records, type(records))
@@ -169,26 +160,23 @@ def edit_article(ids):
         body = request.form.get("body")
         articlestatus = request.form.get('articlestatus')
         update_time = datetime.datetime.now()
-        cur = g.dbcur
+
         query = '''UPDATE articles SET title = %s, body=%s, articleStatus= %s, updateAt = %s WHERE id = %s;'''
-        cur.execute(query, [title, body, articlestatus, update_time, ids])
-        mysql.connection.commit()
+        g.sql_cur.execute(query, [title, body, articlestatus, update_time, ids])
+        g.sql_conn.commit()
 
         flash('Article updated', 'success')
-        #cur.close()
+
         return redirect(url_for('main.user_dashboard'))
-    cur.close()
     return render_template('add_article.html', form=form)
 
 
 @server.route('/delete_article/<string:ids>/')
 @is_accessible
 def delete_article(ids):
-    cur = g.dbcur
     query = '''DELETE FROM articles WHERE id = %s'''
-    cur.execute(query, [ids, ])
-    mysql.connection.commit()
-    #cur.close()
+    g.sql_cur.execute(query, [ids, ])
+    g.sql_conn.commit()
 
     flash("Article deleted", 'success')
     return redirect(url_for('main.user_dashboard'))
@@ -197,14 +185,9 @@ def delete_article(ids):
 # route for show article to user
 @server.route('/article/<string:ids>/')
 def show_article(ids):
-    cur = g.dbcur
     query = '''select * from articles where id = %s'''
-    print(query)
-    cur.execute(query, [ids, ])
-    records = cur.fetchone()
-    print(records)
-    # print(ids ,records)
-    #cur.close()
+    g.sql_cur.execute(query, [ids, ])
+    records = g.sql_cur.fetchone()
     if records:
         return render_template('article.html', current_article=records)
 
@@ -216,11 +199,9 @@ def show_article(ids):
 @server.route('/dashboard')
 @is_accessible
 def user_dashboard():
-    cur = g.dbcur
     query = '''select * from articles where author = %s'''
-    cur.execute(query, [session.get('username'), ])
-    records = cur.fetchall()
-    #cur.close()
+    g.sql_cur.execute(query, [session.get('username'), ])
+    records = g.sql_cur.fetchall()
     if records:
         return render_template('dashboard.html', articles=records)
     msg = 'No article found'
@@ -234,19 +215,6 @@ def user_logout():
     session.clear()
     flash('You are logged out now.', 'success')
     return redirect(url_for('main.user_login'))
-
-
-@server.route('/plots/breast_cancer_data/correlation_matrix')
-def plots():
-    x = [x for x in range(10)]
-    y = [k*k for k in x]
-    plt.scatter(x, y)
-    bytes_image = io.BytesIO()
-    plt.savefig(bytes_image, format='png')
-    bytes_image.seek(0)
-    return send_file(bytes_image,
-                     attachment_filename='plot.png',
-                     mimetype='image/png')
 
 
 @server.route('/')
