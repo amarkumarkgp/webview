@@ -13,6 +13,8 @@ class Config:
     STATIC_FOLDER = 'static'
     TEMPLATES_FOLDER = 'templates'
     UPLOAD_FOLDER = 'upload_files'
+    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://admin:admin123@jeevan.cdhnjohiqccx.ap-south-1.rds.amazonaws.com/WEBBlogdb"
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class ProdConfig(Config):
@@ -30,9 +32,11 @@ class DevConfig(Config):
     FLASK_ENV = 'development'
     DEBUG = True
     TESTING = True
-    MYSQL_HOST = os.environ.get('MYSQL_HOST')
-    MYSQL_USER = os.environ.get('MYSQL_USER')
-    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD')
-    MYSQL_DB = 'blogwebsitedb'
+    MYSQL_HOST = "jeevan.cdhnjohiqccx.ap-south-1.rds.amazonaws.com" #os.environ.get('MYSQL_HOST')
+    MYSQL_USER = "admin" #s.environ.get('MYSQL_USER')
+    MYSQL_PASSWORD = "admin123" # os.environ.get('MYSQL_PASSWORD')
+    MYSQL_DB = 'WEBBlogdb'
     MYSQL_CURSORCLASS = 'DictCursor'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # "mysql://root:root123@localhost/Blogwebsitedb"
+

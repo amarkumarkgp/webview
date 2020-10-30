@@ -9,8 +9,9 @@ from flask import render_template, g, flash, redirect, session, url_for, request
 # developer define imports
 
 # from .dbConnection import get_connection
-from .extensions import mysql
+from .extensions import mysql, db
 from .forms import RegisterForm, ArticlesForm
+from .models import User, Articles
 
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -24,7 +25,7 @@ server = Blueprint("main", __name__,
 def is_accessible(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
-        if 'logged_in' in session:
+        if session.get('logged_in'):
             return f(*args, **kwargs)
 
         flash('Unauthorised access, please log in.', 'danger')
@@ -35,7 +36,6 @@ def is_accessible(f):
 @server.before_request
 def before_request_func():
     if 'sql_cur' not in g:
-        g.sql_conn = mysql.connection
         g.sql_cur = mysql.connection.cursor()
 
 
@@ -56,10 +56,13 @@ def newlogin():
 def user_register():
     form = RegisterForm(request.form)
     if request.method == 'POST' and form.validate():
-        password = sha256_crypt.hash(form.password.data)
-        query = '''insert into users(name, username, email, password) values(%s,%s,%s,%s);'''
-        g.sql_cur.execute(query, [form.name.data, form.username.data, form.email.data, password])
-        g.sql_connn.commit()
+        password = form.password.data #sha256_crypt.encrypt(form.password.data)
+        # query = '''insert into users(name, username, email, password) values(%s,%s,%s,%s);'''
+        # g.sql_cur.execute(query, [form.name.data, form.username.data, form.email.data, password])
+        # g.sql_connn.commit()
+        new_user = User(name=form.name.data, username=form.username.data, email=form.email.data, password=password)
+        db.session.add(new_user)
+        db.session.commit()
 
         flash('You are now registered and can log in.', 'success')
         return render_template('home.html')
@@ -74,15 +77,18 @@ def user_login():
         username = request.form.get('username', None)
         password = request.form['password']
         query = '''SELECT password, id, role FROM users WHERE username = %s;'''
-        g.sql_cur.execute(query, [username, ])
-        data = g.sql_cur.fetchone()
+        user = User.query.filter(User.username == username).first()
+        print(user.password)
 
-        if data:
-            if sha256_crypt.verify(password, data.get('password')):
+        # g.sql_cur.execute(query, [username, ])
+        # data = g.sql_cur.fetchone()
+
+        if user:
+            if password == user.password:
                 session['logged_in'] = True
                 session['username'] = username
-                session['userid'] = data.get('id')
-                session['role'] = data.get('role')
+                session['userid'] = user.id
+                session['role'] = user.role
                 flash("You are logged in ", 'success')
                 return render_template('home.html')
 
@@ -96,6 +102,8 @@ def user_login():
     return render_template('login.html')
 
 
+@server.route('/')
+@server.route('/index')
 @server.route('/home')
 def index():
     return render_template('home.html')
@@ -110,12 +118,14 @@ def about():
 @server.route('/articles')
 @is_accessible
 def all_articles():
-    if session.get("logged_in"):
-        query = f"select id, author, title from articles where articleStatus = 'a' "
+    if session.get("logged_in") is not None:
+        query = f"select id, author, title from articles where article_status = 'a' "
         g.sql_cur.execute(query)
         records = g.sql_cur.fetchall()
         if records:
             return render_template('articles.html', articles=records)
+        flash("There are no articles.")
+        return render_template('articles.html')
     flash('Session time out, please log in again.', 'success')
     return redirect(url_for('main.user_login'))
 
@@ -132,7 +142,7 @@ def add_article():
         author = session.get('username')
         author_id = session.get('userid')
 
-        query = '''INSERT INTO articles(title, body, author, authorId, articleStatus) VALUES(%s, %s, %s, %s, %s);'''
+        query = '''INSERT INTO articles(title, body, author, author_id, article_status) VALUES(%s, %s, %s, %s, %s);'''
         g.sql_cur.execute(query, [title, body, author, author_id, articlestatus])
         g.sql_conn.commit()
 

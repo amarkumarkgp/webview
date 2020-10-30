@@ -4,25 +4,26 @@ from datetime import timedelta
 
 # developer define imports
 from .routes import server
-from .extensions import mysql
+from .extensions import mysql, db
 
 base_dir = os.path.relpath(os.path.dirname(__file__))
-print(base_dir)
 
 static_path = os.path.join(r"/", base_dir,  'static') or '/static'
 
 
 def create_app(config_file):
-    app = Flask(__name__, static_url_path=static_path)
+    app = Flask(__name__, static_url_path=static_path, instance_relative_config=False)
 
     # attaching config file to app
     app.config.from_object('flask_config.DevConfig')
     
-    app.permanent_session_lifetime = timedelta(minutes=10)
+    # app.permanent_session_lifetime = timedelta(minutes=120)
 
     with app.app_context():
 
         # initialising the database
+
+        db.init_app(app)
         mysql.init_app(app)
 
         # registering blueprints for routs
