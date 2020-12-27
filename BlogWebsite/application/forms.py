@@ -15,7 +15,7 @@ class RegisterForm(Form):
 # user articles form class
 class ArticlesForm(Form):
     title = StringField('Title', [validators.length(min=2, max=200)])
-    body = TextAreaField('Body', [validators.length(min=20)])
+    body = TextAreaField('Body')#, [validators.length(min=20)])
     articlestatus = SelectField("Select saving mode", choices=[("a", "complete"), ("b", "editmode")],
                                 validate_choice=False)
 

@@ -38,10 +38,14 @@ class Articles(db.Model):
     created_at = Column(DateTime, default=datetime.now)
     update_at = Column(DateTime, default=None)
 
-    def __init__(self, author_id=None, title=None, author=None):
-        self.author_id = author_id
+    def __init__(self, title, author, author_id, article_status, body, created_at, update_at):
         self.title = title
         self.author = author
+        self.author_id = author_id
+        self.article_status = article_status
+        self.body = body
+        self.created_at = created_at
+        self.update_at = update_at
 
     def __repr__(self):
         return "{}; {}; {}".format(self.id, self.title, self.author)

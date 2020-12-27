@@ -76,12 +76,7 @@ def user_login():
         # getting form field
         username = request.form.get('username', None)
         password = request.form['password']
-        query = '''SELECT password, id, role FROM users WHERE username = %s;'''
         user = User.query.filter(User.username == username).first()
-        print(user.password)
-
-        # g.sql_cur.execute(query, [username, ])
-        # data = g.sql_cur.fetchone()
 
         if user:
             if password == user.password:
@@ -120,8 +115,9 @@ def about():
 def all_articles():
     if session.get("logged_in") is not None:
         query = f"select id, author, title from articles where article_status = 'a' "
-        g.sql_cur.execute(query)
-        records = g.sql_cur.fetchall()
+        records = Articles.query.filter_by(article_status='a').all()
+        # g.sql_cur.execute(query)
+        # records = g.sql_cur.fetchall()
         if records:
             return render_template('articles.html', articles=records)
         flash("There are no articles.")
@@ -142,10 +138,17 @@ def add_article():
         author = session.get('username')
         author_id = session.get('userid')
 
-        query = '''INSERT INTO articles(title, body, author, author_id, article_status) VALUES(%s, %s, %s, %s, %s);'''
-        g.sql_cur.execute(query, [title, body, author, author_id, articlestatus])
-        g.sql_conn.commit()
-
+        # query = '''INSERT INTO articles(title, body, author, author_id, article_status) VALUES(%s, %s, %s, %s, %s);'''
+        new_article = Articles(title=title,
+                               author=author,
+                               author_id=author_id,
+                               article_status=articlestatus,
+                               body=body,
+                               created_at=None,
+                               update_at=None
+                               )
+        db.session.add(new_article)
+        db.session.commit()
         flash('Article added', 'success')
 
         return redirect(url_for('main.user_dashboard'))
@@ -164,17 +167,20 @@ def edit_article(ids):
     print(records, type(records))
     form.title.data = records.get('title')
     form.body.data = records.get('body')
+    print('reached at 176')
 
     if request.method == "POST" and form.validate():
         title = request.form.get('title')
         body = request.form.get("body")
         articlestatus = request.form.get('articlestatus')
         update_time = datetime.datetime.now()
+        article = Articles.query.filter_by(id=ids).first()
+        article.title = title
+        article.body = body
+        article.article_status = articlestatus
+        article.update_at = update_time
 
-        query = '''UPDATE articles SET title = %s, body=%s, articleStatus= %s, updateAt = %s WHERE id = %s;'''
-        g.sql_cur.execute(query, [title, body, articlestatus, update_time, ids])
-        g.sql_conn.commit()
-
+        db.session.commit()
         flash('Article updated', 'success')
 
         return redirect(url_for('main.user_dashboard'))
@@ -184,9 +190,8 @@ def edit_article(ids):
 @server.route('/delete_article/<string:ids>/')
 @is_accessible
 def delete_article(ids):
-    query = '''DELETE FROM articles WHERE id = %s'''
-    g.sql_cur.execute(query, [ids, ])
-    g.sql_conn.commit()
+    Articles.query.filter_by(id=ids).delete()
+    db.session.commit()
 
     flash("Article deleted", 'success')
     return redirect(url_for('main.user_dashboard'))
@@ -209,9 +214,10 @@ def show_article(ids):
 @server.route('/dashboard')
 @is_accessible
 def user_dashboard():
-    query = '''select * from articles where author = %s'''
-    g.sql_cur.execute(query, [session.get('username'), ])
-    records = g.sql_cur.fetchall()
+    # query = '''select * from articles where author = %s'''
+    records = Articles.query.filter_by(author_id=session.get('userid')).all()
+    # g.sql_cur.execute(query, [session.get('username'), ])
+    # records = g.sql_cur.fetchall()
     if records:
         return render_template('dashboard.html', articles=records)
     msg = 'No article found'
