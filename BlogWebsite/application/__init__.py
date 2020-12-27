@@ -16,7 +16,7 @@ def create_app(config_file):
 
     # attaching config file to app
     app.config.from_object('flask_config.ProdConfig')
-    
+    app.secret_key = "dafdafd5af7548s7fd7a5f"   
     app.permanent_session_lifetime = timedelta(minutes=10)
 
     with app.app_context():
