@@ -15,9 +15,9 @@ def create_app(config_file):
     app = Flask(__name__, static_url_path=static_path, instance_relative_config=False)
 
     # attaching config file to app
-    app.config.from_object('flask_config.DevConfig')
+    app.config.from_object('flask_config.ProdConfig')
     
-    # app.permanent_session_lifetime = timedelta(minutes=120)
+    app.permanent_session_lifetime = timedelta(minutes=10)
 
     with app.app_context():
 

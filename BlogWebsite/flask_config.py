@@ -1,5 +1,6 @@
 """Flask config."""
 import os
+from datetime import timedelta
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -10,6 +11,7 @@ class Config:
     FLASK_ENV = 'development'
     TESTING = True
     SECRET_KEY = os.urandom(25)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=10)
     STATIC_FOLDER = 'static'
     TEMPLATES_FOLDER = 'templates'
     UPLOAD_FOLDER = 'upload_files'
@@ -21,10 +23,10 @@ class ProdConfig(Config):
     FLASK_ENV = 'production'
     DEBUG = False
     TESTING = False
-    MYSQL_HOST = 'localhost'
-    MYSQL_USER = 'root'
-    MYSQL_PASSWORD = 'root123'
-    MYSQL_DB = 'blogwebsite'
+    MYSQL_HOST = "jeevan.cdhnjohiqccx.ap-south-1.rds.amazonaws.com"  # os.environ.get('MYSQL_HOST')
+    MYSQL_USER = "admin"  # s.environ.get('MYSQL_USER')
+    MYSQL_PASSWORD = "admin123"  # os.environ.get('MYSQL_PASSWORD')
+    MYSQL_DB = 'WEBBlogdb'
     MYSQL_CURSORCLASS = 'DictCursor'
 
 
